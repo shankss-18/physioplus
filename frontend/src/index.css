@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cream: #F6F4EF;
+  --color-ink: #1C2E2A;
+  --color-teal: #2F5D53;
+  --color-teal-deep: #1C3B34;
+  --color-clay: #B87333;
+  --color-sage: #DCE6DC;
+  --color-sage-line: #C7D6C9;
+  --color-sand-line: #E4DFD3;
+  --color-danger: #f27f79;
+
+  --font-display: 'Fraunces', serif;
+  --font-body: 'Public Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+
+body {
+  font-family: 'Public Sans', sans-serif;
+  background-color: #F6F4EF;
+  color: #1C2E2A;
+}
+
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Transparent horizontal scrollbar */
+.hide-scrollbar::-webkit-scrollbar {
+  height: 6px;
+}
+.hide-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.hide-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(47, 93, 83, 0.2); /* using teal with low opacity */
+  border-radius: 10px;
+}
+.hide-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(47, 93, 83, 0.4);
+}
+.hide-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(47, 93, 83, 0.2) transparent;
+}
