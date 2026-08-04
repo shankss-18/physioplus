@@ -20,6 +20,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Health check – used by uptime monitors to keep the server warm
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 app.use('/api/blocked-slots', blockedSlotsRoutes);
 app.use('/api/working-hours', workingHoursRoutes);
 app.use('/api/availability', availabilityRoutes);
