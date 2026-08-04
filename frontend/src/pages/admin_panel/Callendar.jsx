@@ -6,6 +6,185 @@ import { API_BASE_URL } from '../../config';
 
 const BASE = `${API_BASE_URL}/api`;
 
+/* ── Booking Detail Modal ── */
+function BookingDetailModal({ booking, service, staff, room, onClose, onStatusChange, authHdr }) {
+  const [status, setStatus] = useState(booking?.status || 'confirmed');
+  const [updating, setUpdating] = useState(false);
+
+  useEffect(() => {
+    if (booking) setStatus(booking.status);
+  }, [booking]);
+
+  if (!booking) return null;
+
+  const statusConfig = {
+    confirmed:  { label: 'Confirmed',  bg: 'bg-teal/10',      text: 'text-teal',      dot: 'bg-teal'       },
+    completed:  { label: 'Completed',  bg: 'bg-green-50',     text: 'text-green-600', dot: 'bg-green-500'  },
+    cancelled:  { label: 'Cancelled',  bg: 'bg-red-50',       text: 'text-red-500',   dot: 'bg-red-400'    },
+    no_show:    { label: 'No Show',    bg: 'bg-orange-50',    text: 'text-orange-500',dot: 'bg-orange-400' },
+  };
+  const sc = statusConfig[status] || statusConfig.confirmed;
+
+  const handleStatusChange = async (newStatus) => {
+    setUpdating(true);
+    try {
+      const res = await fetch(`${BASE}/bookings/${booking.id}/status`, {
+        method: 'PUT',
+        headers: authHdr,
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (res.ok) {
+        setStatus(newStatus);
+        onStatusChange(booking.id, newStatus);
+      }
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
+        style={{ animation: 'modalIn 0.22s cubic-bezier(0.34,1.56,0.64,1) both' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="bg-gradient-to-r from-teal-deep to-teal px-6 py-5 flex items-start justify-between">
+          <div>
+            <p className="text-[11px] text-white/60 uppercase tracking-widest font-semibold mb-0.5">Booking #{booking.id}</p>
+            <h2 className="text-white text-lg font-display font-bold leading-tight">
+              {service?.name || '—'}
+            </h2>
+            <p className="text-white/70 text-xs mt-0.5">{fmtDateLong(new Date(String(booking.start_datetime).replace(' ', 'T') + '+05:30'))}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-white/60 hover:text-white transition text-xl leading-none mt-0.5"
+            aria-label="Close"
+          >✕</button>
+        </div>
+
+        {/* Status bar */}
+        <div className={`px-6 py-2.5 flex items-center gap-2 ${sc.bg} border-b border-sand-line`}>
+          <span className={`w-2 h-2 rounded-full ${sc.dot}`} />
+          <span className={`text-xs font-semibold ${sc.text}`}>{sc.label}</span>
+          <span className="text-ink/30 mx-1">·</span>
+          <span className="text-xs text-ink/50 font-mono">
+            {fmtTime12(booking.start_datetime)} — {fmtTime12(booking.end_datetime)}
+          </span>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 py-5 space-y-5">
+
+          {/* Customer */}
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-ink/40 font-semibold mb-2">Customer</p>
+            <div className="bg-cream rounded-xl px-4 py-3 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="w-7 h-7 rounded-full bg-teal/10 text-teal flex items-center justify-center text-sm font-bold">
+                  {(booking.customer_name || '?')[0].toUpperCase()}
+                </span>
+                <span className="font-semibold text-ink text-sm">{booking.customer_name || '—'}</span>
+              </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 pl-9">
+                {booking.customer_email && (
+                  <span className="text-xs text-ink/60">✉ {booking.customer_email}</span>
+                )}
+                {booking.customer_phone && (
+                  <span className="text-xs font-mono text-ink/60">📞 {booking.customer_phone}</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Service Details */}
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-ink/40 font-semibold mb-2">Service Details</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-cream rounded-xl px-4 py-3">
+                <p className="text-[10px] text-ink/40 uppercase tracking-wider mb-1">Service</p>
+                <p className="text-sm font-semibold text-teal-deep">{service?.name || '—'}</p>
+                {service?.description && (
+                  <p className="text-xs text-ink/50 mt-0.5">{service.description}</p>
+                )}
+              </div>
+              <div className="bg-cream rounded-xl px-4 py-3">
+                <p className="text-[10px] text-ink/40 uppercase tracking-wider mb-1">Duration & Price</p>
+                <p className="text-sm font-semibold text-ink">{service?.duration_minutes || '—'} min</p>
+                {service?.price && (
+                  <p className="text-xs text-teal font-semibold mt-0.5">₹{service.price}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Staff & Room */}
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-ink/40 font-semibold mb-2">Assigned Resources</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-cream rounded-xl px-4 py-3">
+                <p className="text-[10px] text-ink/40 uppercase tracking-wider mb-1">Therapist</p>
+                <p className="text-sm font-semibold text-teal-deep">{staff?.name || '—'}</p>
+                {staff?.specialization && (
+                  <p className="text-xs text-ink/50 mt-0.5">{staff.specialization}</p>
+                )}
+              </div>
+              <div className="bg-cream rounded-xl px-4 py-3">
+                <p className="text-[10px] text-ink/40 uppercase tracking-wider mb-1">Room</p>
+                <p className="text-sm font-semibold text-teal-deep">{room?.name || '—'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Status Update */}
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-ink/40 font-semibold mb-2">Update Status</p>
+            <div className="flex flex-wrap gap-2">
+              {['confirmed','completed','cancelled','no_show'].map((s) => (
+                <button
+                  key={s}
+                  disabled={updating || status === s}
+                  onClick={() => handleStatusChange(s)}
+                  className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition ${
+                    status === s
+                      ? `${statusConfig[s].bg} ${statusConfig[s].text} border-transparent cursor-default`
+                      : 'border-sand-line text-ink/50 hover:border-teal hover:text-teal bg-white'
+                  } disabled:opacity-50`}
+                >
+                  {statusConfig[s].label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 bg-cream border-t border-sand-line flex justify-end">
+          <button
+            onClick={onClose}
+            className="text-sm font-semibold px-5 py-2 rounded-lg bg-teal-deep text-white hover:opacity-90 transition"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes modalIn {
+          from { opacity: 0; transform: scale(0.92) translateY(12px); }
+          to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 /* ── date helpers ── */
 function toDateStr(d) {
   const pad = (n) => String(n).padStart(2, '0');
@@ -45,15 +224,16 @@ const Calendar = () => {
   const navigate  = useNavigate();
   const today = new Date();
 
-  const [weekAnchor, setWeekAnchor]   = useState(today);
-  const [selectedDay, setSelectedDay] = useState(today);
-  const [bookings, setBookings]       = useState([]);
-  const [blocks, setBlocks]           = useState([]);
-  const [staff, setStaff]             = useState([]);
-  const [rooms, setRooms]             = useState([]);
-  const [services, setServices]       = useState([]);
-  const [isBlockOpen, setIsBlockOpen] = useState(false);
-  const [loading, setLoading]         = useState(true);
+  const [weekAnchor, setWeekAnchor]     = useState(today);
+  const [selectedDay, setSelectedDay]   = useState(today);
+  const [bookings, setBookings]         = useState([]);
+  const [blocks, setBlocks]             = useState([]);
+  const [staff, setStaff]               = useState([]);
+  const [rooms, setRooms]               = useState([]);
+  const [services, setServices]         = useState([]);
+  const [isBlockOpen, setIsBlockOpen]   = useState(false);
+  const [loading, setLoading]           = useState(true);
+  const [detailBooking, setDetailBooking] = useState(null);
 
   const weekDates = getWeekDates(weekAnchor);
 
@@ -111,6 +291,16 @@ const Calendar = () => {
       headers: authHdr,
     });
     if (res.ok) setBlocks((prev) => prev.filter((b) => b.id !== id));
+  };
+
+  /* ── Update booking status in local state ── */
+  const handleStatusChange = (bookingId, newStatus) => {
+    setBookings((prev) =>
+      prev.map((b) => Number(b.id) === Number(bookingId) ? { ...b, status: newStatus } : b)
+    );
+    if (detailBooking && Number(detailBooking.id) === Number(bookingId)) {
+      setDetailBooking((prev) => ({ ...prev, status: newStatus }));
+    }
   };
 
   /* ── Week navigation ── */
@@ -246,7 +436,16 @@ const Calendar = () => {
                       const stfBlock = (!isBooking && data.resource_type === 'staff') ? getStaff(data.resource_id) : null;
 
                       return (
-                        <tr key={i} className="border-t border-sand-line">
+                        <tr
+                          key={i}
+                          className={`border-t border-sand-line transition-colors ${
+                            isBooking
+                              ? 'cursor-pointer hover:bg-teal/5 group'
+                              : ''
+                          }`}
+                          onClick={() => isBooking && setDetailBooking(data)}
+                          title={isBooking ? 'Click to view booking details' : undefined}
+                        >
                           <td className="px-5 py-3 text-xs font-mono text-ink/70 whitespace-nowrap">
                             {fmtTime12(data.start_datetime)}
                             <span className="text-ink/30 mx-1">–</span>
@@ -280,6 +479,11 @@ const Calendar = () => {
                           <td className="px-5 py-3 text-sm">
                             <span className="text-teal">{rm?.name || '—'}</span>
                           </td>
+                          {isBooking && (
+                            <td className="px-3 py-3">
+                              <span className="text-[10px] text-teal/60 group-hover:text-teal transition opacity-0 group-hover:opacity-100 whitespace-nowrap">View →</span>
+                            </td>
+                          )}
                         </tr>
                       );
                     })}
@@ -299,15 +503,24 @@ const Calendar = () => {
                   const stfBlock = (!isBooking && data.resource_type === 'staff') ? getStaff(data.resource_id) : null;
 
                   return (
-                    <div key={i} className="px-4 py-3">
+                    <div
+                      key={i}
+                      className={`px-4 py-3 transition-colors ${
+                        isBooking ? 'cursor-pointer hover:bg-teal/5 active:bg-teal/10' : ''
+                      }`}
+                      onClick={() => isBooking && setDetailBooking(data)}
+                    >
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <span className="text-[11px] font-mono text-ink/60">
                           {fmtTime12(data.start_datetime)} – {fmtTime12(data.end_datetime)}
                         </span>
-                        {isBooking
-                          ? <span className="text-[10px] font-semibold bg-teal/10 text-teal px-2 py-0.5 rounded-full">Booked</span>
-                          : <span className="text-[10px] font-semibold bg-danger/10 text-danger px-2 py-0.5 rounded-full">Blocked</span>
-                        }
+                        <div className="flex items-center gap-2">
+                          {isBooking
+                            ? <span className="text-[10px] font-semibold bg-teal/10 text-teal px-2 py-0.5 rounded-full">Booked</span>
+                            : <span className="text-[10px] font-semibold bg-danger/10 text-danger px-2 py-0.5 rounded-full">Blocked</span>
+                          }
+                          {isBooking && <span className="text-[10px] text-teal/50">›</span>}
+                        </div>
                       </div>
                       <p className="text-sm font-medium text-ink">
                         {isBooking ? `${svc?.name || '—'} — ${stf?.name || '—'}` : (data.reason || 'No reason given')}
@@ -441,6 +654,19 @@ const Calendar = () => {
           setBlocks((prev) => [...prev, newBlock]);
         }}
       />
+
+      {/* Booking Detail Modal */}
+      {detailBooking && (
+        <BookingDetailModal
+          booking={detailBooking}
+          service={getService(detailBooking.service_id)}
+          staff={getStaff(detailBooking.staff_id)}
+          room={getRoom(detailBooking.room_id)}
+          authHdr={authHdr}
+          onClose={() => setDetailBooking(null)}
+          onStatusChange={handleStatusChange}
+        />
+      )}
     </div>
   );
 };
