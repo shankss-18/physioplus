@@ -3,10 +3,11 @@ import { NavLink, useNavigate } from 'react-router-dom';
 
 const navItems = [
   { label: 'Dashboard', icon: '📊', path: '/admin/dashboard' },
-  { label: 'Calendar', icon: '🗓', path: '/admin/calendar' },
-  { label: 'Services', icon: '🧾', path: '/admin/services' },
-  { label: 'Staff', icon: '🧑‍⚕️', path: '/admin/staff' },
-  { label: 'Rooms', icon: '🚪', path: '/admin/rooms' },
+  { label: 'Calendar',  icon: '🗓', path: '/admin/calendar'  },
+  { label: 'Bookings',  icon: '📋', path: '/admin/bookings'  },
+  { label: 'Services',  icon: '🧾', path: '/admin/services'  },
+  { label: 'Staff',     icon: '🧑‍⚕️', path: '/admin/staff'    },
+  { label: 'Rooms',     icon: '🚪', path: '/admin/rooms'     },
 ];
 
 const AdminSidebar = () => {
