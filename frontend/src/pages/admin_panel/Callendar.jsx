@@ -230,7 +230,8 @@ const Calendar = () => {
                       <th className="text-left text-xs uppercase text-ink/40 px-5 py-3">Time</th>
                       <th className="text-left text-xs uppercase text-ink/40 px-5 py-3">Type</th>
                       <th className="text-left text-xs uppercase text-ink/40 px-5 py-3">Detail</th>
-                      <th className="text-left text-xs uppercase text-ink/40 px-5 py-3">Staff</th>
+                      <th className="text-left text-xs uppercase text-ink/40 px-5 py-3">Customer</th>
+                      <th className="text-left text-xs uppercase text-ink/40 px-5 py-3">Phone</th>
                       <th className="text-left text-xs uppercase text-ink/40 px-5 py-3">Room</th>
                     </tr>
                   </thead>
@@ -260,14 +261,20 @@ const Calendar = () => {
                           </td>
                           <td className="px-5 py-3 text-sm text-ink">
                             {isBooking
-                              ? <>{svc?.name || '—'} <span className="text-ink/40">—</span> {data.customer_name}</>
+                              ? <>{svc?.name || '—'} <span className="text-ink/40">—</span> <span className="text-teal-deep/70">{stf?.name || '—'}</span></>
                               : <span className="text-ink/60">{data.reason || 'No reason given'}</span>
                             }
                           </td>
                           <td className="px-5 py-3 text-sm">
                             {isBooking
-                              ? <span className="text-teal-deep/70">{stf?.name || '—'}</span>
-                              : <span className="text-teal-deep/70">{stfBlock?.name || '—'}</span>
+                              ? <span className="font-medium text-ink">{data.customer_name || '—'}</span>
+                              : <span className="text-ink/40">—</span>
+                            }
+                          </td>
+                          <td className="px-5 py-3 text-sm">
+                            {isBooking
+                              ? <span className="font-mono text-ink/70 text-xs">{data.customer_phone || '—'}</span>
+                              : <span className="text-ink/40">—</span>
                             }
                           </td>
                           <td className="px-5 py-3 text-sm">
@@ -303,10 +310,18 @@ const Calendar = () => {
                         }
                       </div>
                       <p className="text-sm font-medium text-ink">
-                        {isBooking ? `${svc?.name || '—'} — ${data.customer_name}` : (data.reason || 'No reason given')}
+                        {isBooking ? `${svc?.name || '—'} — ${stf?.name || '—'}` : (data.reason || 'No reason given')}
                       </p>
+                      {isBooking && (
+                        <div className="mt-1 text-xs text-ink/60">
+                          <span className="font-medium">{data.customer_name}</span>
+                          {data.customer_phone && (
+                            <span className="ml-2 font-mono text-ink/50">{data.customer_phone}</span>
+                          )}
+                        </div>
+                      )}
                       <div className="flex gap-3 mt-1 text-xs text-ink/50">
-                        {(stf || stfBlock) && <span>{isBooking ? stf?.name : stfBlock?.name}</span>}
+                        {(!isBooking && stfBlock) && <span>{stfBlock.name}</span>}
                         {rm && <span className="text-teal">{rm.name}</span>}
                       </div>
                     </div>
