@@ -24,6 +24,16 @@ function toDateStr(d) {
   const p = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
+function getWeekDates(anchor) {
+  const day = anchor.getDay();
+  const monday = new Date(anchor);
+  monday.setDate(anchor.getDate() - ((day + 6) % 7));
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return d;
+  });
+}
 
 /* ── Status config ── */
 const STATUS_CONFIG = {
@@ -212,20 +222,22 @@ function BookingDetailModal({ booking, service, staff, room, onClose, onStatusCh
 const Bookings = () => {
   const navigate = useNavigate();
 
-  const [bookings,    setBookings]    = useState([]);
-  const [services,    setServices]    = useState([]);
-  const [staff,       setStaff]       = useState([]);
-  const [rooms,       setRooms]       = useState([]);
-  const [loading,     setLoading]     = useState(true);
-  const [filter,      setFilter]      = useState('all');
-  const [dateFilter,  setDateFilter]  = useState('all');  // 'all' | 'today'
-  const [search,      setSearch]      = useState('');
-  const [detail,      setDetail]      = useState(null);
-  const [sortField,   setSortField]   = useState('start_datetime');
-  const [sortDir,     setSortDir]     = useState('desc');
+  const [bookings,      setBookings]      = useState([]);
+  const [services,      setServices]      = useState([]);
+  const [staff,         setStaff]         = useState([]);
+  const [rooms,         setRooms]         = useState([]);
+  const [loading,       setLoading]       = useState(true);
+  const [filter,        setFilter]        = useState('all');
+  const [selectedDate,  setSelectedDate]  = useState(null); // Date object | null
+  const [weekAnchor,    setWeekAnchor]    = useState(new Date());
+  const [search,        setSearch]        = useState('');
+  const [detail,        setDetail]        = useState(null);
+  const [sortField,     setSortField]     = useState('start_datetime');
+  const [sortDir,       setSortDir]       = useState('desc');
 
-  const today   = new Date();
+  const today    = new Date();
   const todayStr = toDateStr(today);
+  const weekDates = getWeekDates(weekAnchor);
 
   const TOKEN   = localStorage.getItem('token') || '';
   const authHdr = { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' };
@@ -266,17 +278,20 @@ const Bookings = () => {
     return c;
   }, [bookings]);
 
-  /* ── Today count ── */
-  const todayCount = useMemo(() =>
-    bookings.filter((b) => String(b.start_datetime).startsWith(todayStr)).length
-  , [bookings, todayStr]);
+  /* ── Bookings count per week day ── */
+  const bookingsPerDay = useMemo(() =>
+    weekDates.map((d) =>
+      bookings.filter((b) => String(b.start_datetime).startsWith(toDateStr(d))).length
+    )
+  , [bookings, weekDates]);
 
   /* ── Filtered + searched + sorted ── */
   const displayed = useMemo(() => {
     let list = filter === 'all' ? bookings : bookings.filter((b) => b.status === filter);
     // Date filter
-    if (dateFilter === 'today') {
-      list = list.filter((b) => String(b.start_datetime).startsWith(todayStr));
+    if (selectedDate) {
+      const sel = toDateStr(selectedDate);
+      list = list.filter((b) => String(b.start_datetime).startsWith(sel));
     }
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -297,7 +312,7 @@ const Bookings = () => {
       return 0;
     });
     return list;
-  }, [bookings, filter, dateFilter, search, sortField, sortDir, todayStr]);
+  }, [bookings, filter, selectedDate, search, sortField, sortDir]);
 
   /* ── Toggle sort ── */
   const toggleSort = (field) => {
@@ -330,41 +345,86 @@ const Bookings = () => {
       <div className="flex-1 px-4 md:px-8 lg:px-10 py-5 mt-5 min-w-0">
 
         {/* ── Header ── */}
-        <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
+        <div className="flex items-start justify-between mb-5 gap-4 flex-wrap">
           <div>
             <h1 className="text-xl text-teal-deep font-display font-semibold mb-1">Bookings</h1>
             <p className="text-[11px] md:text-xs text-ink/50">
               {counts.all} total · {counts.confirmed ?? 0} confirmed · {counts.completed ?? 0} completed
             </p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Today toggle */}
-            <button
-              onClick={() => setDateFilter((prev) => prev === 'today' ? 'all' : 'today')}
-              className={`flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-full border transition ${
-                dateFilter === 'today'
-                  ? 'bg-clay text-white border-clay shadow-sm'
-                  : 'bg-white text-ink/60 border-sand-line hover:border-clay hover:text-clay'
-              }`}
-            >
-              📅 Today
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                dateFilter === 'today' ? 'bg-white/20 text-white' : 'bg-cream text-ink/50'
-              }`}>
-                {todayCount}
-              </span>
-            </button>
-            {/* Search */}
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/30 text-sm pointer-events-none">🔍</span>
-              <input
-                type="text"
-                placeholder="Search name, email, phone, ID…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 pr-4 py-2 text-sm rounded-lg border border-sand-line bg-white text-ink placeholder:text-ink/30 focus:border-teal transition w-56 md:w-64"
-              />
+          {/* Search */}
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/30 text-sm pointer-events-none">🔍</span>
+            <input
+              type="text"
+              placeholder="Search name, email, phone, ID…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-8 pr-4 py-2 text-sm rounded-lg border border-sand-line bg-white text-ink placeholder:text-ink/30 focus:border-teal transition w-56 md:w-64"
+            />
+          </div>
+        </div>
+
+        {/* ── Week strip ── */}
+        <div className="bg-white rounded-xl p-4 mb-5 overflow-hidden">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <p className="text-xs text-ink/40 font-medium">
+              Week of {weekDates[0].toLocaleDateString('en-IN', { month: 'long', day: 'numeric' })}
+              {selectedDate && (
+                <button
+                  onClick={() => setSelectedDate(null)}
+                  className="ml-3 text-[10px] text-teal underline cursor-pointer"
+                >
+                  Clear date filter
+                </button>
+              )}
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => { const d = new Date(weekAnchor); d.setDate(d.getDate() - 7); setWeekAnchor(d); }}
+                className="w-7 h-7 flex items-center justify-center rounded-md border border-sand-line text-ink/50 hover:text-teal-deep hover:border-teal-deep transition text-sm"
+              >‹</button>
+              <button
+                onClick={() => { const d = new Date(weekAnchor); d.setDate(d.getDate() + 7); setWeekAnchor(d); }}
+                className="w-7 h-7 flex items-center justify-center rounded-md border border-sand-line text-ink/50 hover:text-teal-deep hover:border-teal-deep transition text-sm"
+              >›</button>
             </div>
+          </div>
+          <div className="grid grid-cols-7 gap-2">
+            {weekDates.map((d, i) => {
+              const isToday    = toDateStr(d) === todayStr;
+              const isSelected = selectedDate && toDateStr(d) === toDateStr(selectedDate);
+              const isPast     = d < new Date(todayStr);
+              const count      = bookingsPerDay[i];
+              return (
+                <button
+                  key={i}
+                  onClick={() => setSelectedDate(isSelected ? null : new Date(d))}
+                  className={`rounded-xl p-2.5 text-center transition flex flex-col items-center gap-1 border ${
+                    isSelected
+                      ? 'bg-teal-deep/10 border-teal-deep/30'
+                      : 'border-transparent hover:bg-cream'
+                  }`}
+                >
+                  <span className={`text-[10px] uppercase font-semibold ${
+                    isPast ? 'text-ink/30' : 'text-ink/50'
+                  }`}>
+                    {d.toLocaleDateString('en-IN', { weekday: 'short' })}
+                  </span>
+                  <span className={`text-lg font-bold leading-none ${
+                    isPast ? 'text-ink/30' : isToday ? 'text-teal' : 'text-ink'
+                  }`}>
+                    {d.getDate()}
+                  </span>
+                  {count > 0 && (
+                    <span className="text-[10px] text-teal/70 font-medium">{count} booked</span>
+                  )}
+                  {count === 0 && !isPast && (
+                    <span className="text-[10px] text-ink/20">—</span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
