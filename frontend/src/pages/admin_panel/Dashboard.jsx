@@ -197,7 +197,7 @@ const AdminDashboard = () => {
       const tsB = b.created_at || b.start_datetime;
       return tsB.localeCompare(tsA);
     })
-    .slice(0, 8);
+    .slice(0, 6);
 
   function activityText(b) {
     const svc = getService(b.service_id);
