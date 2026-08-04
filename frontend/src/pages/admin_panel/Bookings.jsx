@@ -20,6 +20,10 @@ function fmtDate(str) {
   const d = new Date(String(str).replace(' ', 'T') + '+05:30');
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
+function toDateStr(d) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
 
 /* ── Status config ── */
 const STATUS_CONFIG = {
@@ -208,16 +212,20 @@ function BookingDetailModal({ booking, service, staff, room, onClose, onStatusCh
 const Bookings = () => {
   const navigate = useNavigate();
 
-  const [bookings,  setBookings]  = useState([]);
-  const [services,  setServices]  = useState([]);
-  const [staff,     setStaff]     = useState([]);
-  const [rooms,     setRooms]     = useState([]);
-  const [loading,   setLoading]   = useState(true);
-  const [filter,    setFilter]    = useState('all');
-  const [search,    setSearch]    = useState('');
-  const [detail,    setDetail]    = useState(null);
-  const [sortField, setSortField] = useState('start_datetime');
-  const [sortDir,   setSortDir]   = useState('desc');
+  const [bookings,    setBookings]    = useState([]);
+  const [services,    setServices]    = useState([]);
+  const [staff,       setStaff]       = useState([]);
+  const [rooms,       setRooms]       = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [filter,      setFilter]      = useState('all');
+  const [dateFilter,  setDateFilter]  = useState('all');  // 'all' | 'today'
+  const [search,      setSearch]      = useState('');
+  const [detail,      setDetail]      = useState(null);
+  const [sortField,   setSortField]   = useState('start_datetime');
+  const [sortDir,     setSortDir]     = useState('desc');
+
+  const today   = new Date();
+  const todayStr = toDateStr(today);
 
   const TOKEN   = localStorage.getItem('token') || '';
   const authHdr = { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' };
@@ -258,9 +266,18 @@ const Bookings = () => {
     return c;
   }, [bookings]);
 
+  /* ── Today count ── */
+  const todayCount = useMemo(() =>
+    bookings.filter((b) => String(b.start_datetime).startsWith(todayStr)).length
+  , [bookings, todayStr]);
+
   /* ── Filtered + searched + sorted ── */
   const displayed = useMemo(() => {
     let list = filter === 'all' ? bookings : bookings.filter((b) => b.status === filter);
+    // Date filter
+    if (dateFilter === 'today') {
+      list = list.filter((b) => String(b.start_datetime).startsWith(todayStr));
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter((b) =>
@@ -280,7 +297,7 @@ const Bookings = () => {
       return 0;
     });
     return list;
-  }, [bookings, filter, search, sortField, sortDir]);
+  }, [bookings, filter, dateFilter, search, sortField, sortDir, todayStr]);
 
   /* ── Toggle sort ── */
   const toggleSort = (field) => {
@@ -320,16 +337,34 @@ const Bookings = () => {
               {counts.all} total · {counts.confirmed ?? 0} confirmed · {counts.completed ?? 0} completed
             </p>
           </div>
-          {/* Search */}
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/30 text-sm pointer-events-none">🔍</span>
-            <input
-              type="text"
-              placeholder="Search name, email, phone, ID…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 pr-4 py-2 text-sm rounded-lg border border-sand-line bg-white text-ink placeholder:text-ink/30 focus:outline-none focus:border-teal transition w-56 md:w-72"
-            />
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Today toggle */}
+            <button
+              onClick={() => setDateFilter((prev) => prev === 'today' ? 'all' : 'today')}
+              className={`flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-full border transition ${
+                dateFilter === 'today'
+                  ? 'bg-clay text-white border-clay shadow-sm'
+                  : 'bg-white text-ink/60 border-sand-line hover:border-clay hover:text-clay'
+              }`}
+            >
+              📅 Today
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                dateFilter === 'today' ? 'bg-white/20 text-white' : 'bg-cream text-ink/50'
+              }`}>
+                {todayCount}
+              </span>
+            </button>
+            {/* Search */}
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/30 text-sm pointer-events-none">🔍</span>
+              <input
+                type="text"
+                placeholder="Search name, email, phone, ID…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8 pr-4 py-2 text-sm rounded-lg border border-sand-line bg-white text-ink placeholder:text-ink/30 focus:border-teal transition w-56 md:w-64"
+              />
+            </div>
           </div>
         </div>
 

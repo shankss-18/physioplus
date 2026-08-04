@@ -27,6 +27,11 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Remove default browser outline from all interactive elements */
+input, textarea, select, button {
+  outline: none;
+}
+
 /* Transparent horizontal scrollbar */
 .hide-scrollbar::-webkit-scrollbar {
   height: 6px;
