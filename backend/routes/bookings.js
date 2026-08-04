@@ -75,8 +75,8 @@ router.post('/', async (req, res) => {
   try {
     const result = await db.execute({
       sql: `INSERT INTO bookings
-        (customer_name, customer_email, customer_phone, staff_id, room_id, service_id, start_datetime, end_datetime, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'confirmed')`,
+        (customer_name, customer_email, customer_phone, staff_id, room_id, service_id, start_datetime, end_datetime, status, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', datetime('now'))`,
       args: [
         customer_name, customer_email, customer_phone || '',
         staff_id, roomId, service_id,

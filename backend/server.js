@@ -25,6 +25,17 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// One-time migration: add created_at to bookings if missing
+app.get('/api/admin/migrate', async (req, res) => {
+  try {
+    await db.execute(`ALTER TABLE bookings ADD COLUMN created_at TEXT`);
+    res.json({ message: 'Migration done: created_at column added.' });
+  } catch (e) {
+    // Column likely already exists — not an error
+    res.json({ message: 'Already migrated or no action needed.', detail: e.message });
+  }
+});
+
 app.use('/api/blocked-slots', blockedSlotsRoutes);
 app.use('/api/working-hours', workingHoursRoutes);
 app.use('/api/availability', availabilityRoutes);

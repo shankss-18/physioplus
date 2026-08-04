@@ -191,8 +191,13 @@ const AdminDashboard = () => {
 
   /* ── Recent activity ── */
   const recentActivity = [...bookings]
-    .sort((a, b) => b.start_datetime.localeCompare(a.start_datetime))
-    .slice(0, 5);
+    .sort((a, b) => {
+      // Sort by when booking was created, fall back to start_datetime for old records
+      const tsA = a.created_at || a.start_datetime;
+      const tsB = b.created_at || b.start_datetime;
+      return tsB.localeCompare(tsA);
+    })
+    .slice(0, 8);
 
   function activityText(b) {
     const svc = getService(b.service_id);
@@ -208,14 +213,26 @@ const AdminDashboard = () => {
     if (b.status === 'no_show')   return 'bg-danger';
     return 'bg-ink/30';
   }
+  function timeAgo(str) {
+    if (!str) return '';
+    const d = new Date(String(str).replace(' ', 'T') + '+05:30');
+    const diffMs = Date.now() - d.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffHr  = Math.floor(diffMs / 3600000);
+    const diffDay = Math.floor(diffMs / 86400000);
+    if (diffMin < 1)   return 'Just now';
+    if (diffMin < 60)  return `${diffMin}m ago`;
+    if (diffHr  < 24)  return `${diffHr}h ago`;
+    if (diffDay === 1) return 'Yesterday';
+    if (diffDay < 7)   return `${diffDay}d ago`;
+    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  }
   function formatTimestamp(str) {
+    if (!str) return '';
     const d = new Date(String(str).replace(' ', 'T') + '+05:30');
     return d.toLocaleString('en-IN', {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
+      month: 'short', day: 'numeric',
+      hour: 'numeric', minute: '2-digit', hour12: true
     });
   }
 
@@ -354,16 +371,23 @@ const AdminDashboard = () => {
                 {recentActivity.length === 0 && (
                   <p className="text-sm text-ink/40">No recent activity.</p>
                 )}
-                <ul className="flex flex-col gap-4">
-                  {recentActivity.map((b) => (
-                    <li key={b.id} className="flex items-start gap-3">
-                      <span className={`w-2 h-2 rounded-full mt-1 shrink-0 ${activityDot(b)}`} />
-                      <div>
-                        <p className="text-sm text-ink leading-snug">{activityText(b)}</p>
-                        <p className="text-xs text-ink/40 mt-0.5">{formatTimestamp(b.start_datetime)}</p>
-                      </div>
-                    </li>
-                  ))}
+                <ul className="flex flex-col gap-3 max-h-72 overflow-y-auto pr-1">
+                  {recentActivity.map((b) => {
+                    const ts = b.created_at || b.start_datetime;
+                    return (
+                      <li key={b.id} className="flex items-start gap-3">
+                        <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${activityDot(b)}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-ink leading-snug truncate">{activityText(b)}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[11px] font-semibold text-teal-deep/70">{timeAgo(ts)}</span>
+                            <span className="text-[10px] text-ink/30">·</span>
+                            <span className="text-[10px] text-ink/40">{formatTimestamp(ts)}</span>
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             </div>

@@ -321,6 +321,8 @@ async function insertBookings(staffIds, serviceIds, serviceDetails, blockedSlots
           status,
           deposit_paid: depositPaid,
           stripe_payment_id: depositPaid ? `pi_test_${Math.random().toString(36).slice(2, 12)}` : null,
+          // Simulate booking created 1-72 hours before the appointment
+          created_at: formatDbDatetime(addMinutes(start, -(Math.floor(Math.random() * 4320) + 60))),
         });
 
         staffBusy[staffId].push({ start, end });
@@ -337,13 +339,13 @@ async function insertBookings(staffIds, serviceIds, serviceDetails, blockedSlots
   for (const row of bookingRows) {
     await client.execute({
       sql: `INSERT INTO bookings
-        (customer_name, customer_email, customer_phone, staff_id, room_id, service_id, start_datetime, end_datetime, status, deposit_paid, stripe_payment_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (customer_name, customer_email, customer_phone, staff_id, room_id, service_id, start_datetime, end_datetime, status, deposit_paid, stripe_payment_id, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       args: [
         row.customer_name, row.customer_email, row.customer_phone,
         row.staff_id, row.room_id, row.service_id,
         row.start_datetime, row.end_datetime, row.status,
-        row.deposit_paid, row.stripe_payment_id,
+        row.deposit_paid, row.stripe_payment_id, row.created_at,
       ],
     });
   }
