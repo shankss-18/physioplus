@@ -269,14 +269,21 @@ const Bookings = () => {
   const getStaff   = (id) => staff.find((s)    => Number(s.id) === Number(id));
   const getRoom    = (id) => rooms.find((r)    => Number(r.id) === Number(id));
 
-  /* ── Counts per status ── */
+  /* ── Date-scoped base list (for counts + status tabs) ── */
+  const dateFilteredBookings = useMemo(() => {
+    if (!selectedDate) return bookings;
+    const sel = toDateStr(selectedDate);
+    return bookings.filter((b) => String(b.start_datetime).startsWith(sel));
+  }, [bookings, selectedDate]);
+
+  /* ── Counts per status (scoped to selected date) ── */
   const counts = useMemo(() => {
-    const c = { all: bookings.length };
+    const c = { all: dateFilteredBookings.length };
     Object.keys(STATUS_CONFIG).forEach((k) => {
-      c[k] = bookings.filter((b) => b.status === k).length;
+      c[k] = dateFilteredBookings.filter((b) => b.status === k).length;
     });
     return c;
-  }, [bookings]);
+  }, [dateFilteredBookings]);
 
   /* ── Bookings count per week day ── */
   const bookingsPerDay = useMemo(() =>
@@ -287,12 +294,8 @@ const Bookings = () => {
 
   /* ── Filtered + searched + sorted ── */
   const displayed = useMemo(() => {
-    let list = filter === 'all' ? bookings : bookings.filter((b) => b.status === filter);
-    // Date filter
-    if (selectedDate) {
-      const sel = toDateStr(selectedDate);
-      list = list.filter((b) => String(b.start_datetime).startsWith(sel));
-    }
+    // Start from the date-scoped list, then apply status filter
+    let list = filter === 'all' ? dateFilteredBookings : dateFilteredBookings.filter((b) => b.status === filter);
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter((b) =>
@@ -312,7 +315,7 @@ const Bookings = () => {
       return 0;
     });
     return list;
-  }, [bookings, filter, selectedDate, search, sortField, sortDir]);
+  }, [dateFilteredBookings, filter, search, sortField, sortDir]);
 
   /* ── Toggle sort ── */
   const toggleSort = (field) => {
@@ -349,7 +352,10 @@ const Bookings = () => {
           <div>
             <h1 className="text-xl text-teal-deep font-display font-semibold mb-1">Bookings</h1>
             <p className="text-[11px] md:text-xs text-ink/50">
-              {counts.all} total · {counts.confirmed ?? 0} confirmed · {counts.completed ?? 0} completed
+              {selectedDate
+                ? <>{counts.all} on {selectedDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} · {bookings.length} total</>
+                : <>{bookings.length} total · {counts.confirmed ?? 0} confirmed · {counts.completed ?? 0} completed</>
+              }
             </p>
           </div>
           {/* Search */}
@@ -570,6 +576,7 @@ const Bookings = () => {
                 <p className="text-xs text-ink/40">
                   Showing <span className="font-semibold text-ink/60">{displayed.length}</span> of{' '}
                   <span className="font-semibold text-ink/60">{counts.all}</span> bookings
+                  {selectedDate && <span className="text-ink/30"> on {selectedDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>}
                 </p>
               </div>
             </>
