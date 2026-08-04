@@ -5,6 +5,7 @@ import { TimeStep } from './steps/TimeStep';
 import { DetailsStep } from './steps/DetailsStep';
 import { ConfirmationStep } from './steps/ConfirmationStep';
 import Navbar2 from '../../components/Navbar2'
+import Footer from '../../components/Footer'
 export function BookingFlow() {
   const [step, setStep] = useState(1);
   const [booking, setBooking] = useState({
@@ -28,6 +29,7 @@ export function BookingFlow() {
         {step === 4 && <DetailsStep booking={booking} onNext={(info) => { updateBooking({ customerInfo: info }); setStep(5); }} onBack={() => setStep(3)} />}
         {step === 5 && <ConfirmationStep booking={booking} />}
         </div>
+        <Footer />
     </div>
   );
 }

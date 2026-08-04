@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import Navbar2 from '../../components/Navbar2'
+import Footer from '../../components/Footer'
 import { API_BASE_URL } from '../../config';
 const TrackBooking = () => {
     const data = {
@@ -122,6 +123,7 @@ const TrackBooking = () => {
                 </div>
             )}
         </div>
+        <Footer />
     </div>
   )
 }

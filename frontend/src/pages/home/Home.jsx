@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import Navbar from '../../components/Navbar.jsx'
+import Footer from '../../components/Footer.jsx'
 import {useNavigate} from 'react-router-dom'
 import { API_BASE_URL } from '../../config';
 
@@ -218,6 +219,8 @@ const Home = () => {
           </div>
         </div>
       </div>
+
+      <Footer />
     </div>
   )
 }
